@@ -83,7 +83,9 @@ static fluid_real_t fluid_iir_filter_q_from_dB(fluid_real_t q_dB)
      * resonance peak not over the DC gain, but over the frequency
      * response of a non-resonant filter.  This idea is implemented as
      * follows: */
+#ifndef FLUIDSYNTH_WATER
     q_dB -= 3.01f;
+#endif
 
     /* The 'sound font' Q is defined in dB. The filter needs a linear
        q. Convert. */

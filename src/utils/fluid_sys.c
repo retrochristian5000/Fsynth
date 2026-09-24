@@ -621,7 +621,11 @@ void fluid_profiling_print(void)
 {
     int i;
 
+#ifdef FLUIDSYNTH_WATER
+    FLUID_LOG(FLUID_INFO, "fluid_profiling_print");
+#else
     printf("fluid_profiling_print\n");
+#endif
 
     FLUID_LOG(FLUID_INFO, "Estimated times: min/avg/max (micro seconds)");
 

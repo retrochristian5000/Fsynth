@@ -19,6 +19,10 @@
 
 #include "fluid_file.h"
 
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+#include <windows.h>
+#endif
+
 #if HAVE_CXX_FILESYSTEM
 #include <filesystem>
 #endif
@@ -26,7 +30,16 @@
 #if OSAL_cpp11
 bool fluid_file_test(const char *path, int flags)
 {
-#if OSAL_cpp11 && HAVE_CXX_FILESYSTEM
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+    DWORD attrs = GetFileAttributesA(path);
+    if(attrs == INVALID_FILE_ATTRIBUTES)
+        return false;
+    if((flags & FLUID_FILE_TEST_EXISTS) != 0)
+        return true;
+    if((flags & FLUID_FILE_TEST_IS_REGULAR) != 0)
+        return (attrs & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_DEVICE)) == 0;
+    return false;
+#elif OSAL_cpp11 && HAVE_CXX_FILESYSTEM
     try
     {
         std::filesystem::path _path = std::filesystem::u8path(path);

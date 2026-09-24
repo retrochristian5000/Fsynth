@@ -69,7 +69,7 @@ T round_clip_to(float x)
     }
 
     x = std::round(x);
-    x = std::clamp(x, fmin, fmax);
+    x = std::max(fmin, std::min(x, fmax));
 
     T i = static_cast<T>(x);
     return i;

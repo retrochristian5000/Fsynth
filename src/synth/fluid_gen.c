@@ -108,7 +108,12 @@ fluid_gen_init(fluid_gen_t *gen, fluid_channel_t *channel)
         gen[i].flags = GEN_UNUSED;
         gen[i].mod = 0.0;
         gen[i].nrpn = (channel == NULL) ? 0.0 : fluid_channel_get_gen(channel, i);
+#ifdef FLUIDSYNTH_WATER
+        /* Water supplies the DLS2 defaults in dmsynth. */
+        gen[i].val = 0.0;
+#else
         gen[i].val = fluid_gen_info[i].def;
+#endif
     }
 }
 

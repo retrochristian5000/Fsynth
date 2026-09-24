@@ -329,11 +329,13 @@ fluid_settings_init(fluid_settings_t *settings)
     fluid_return_if_fail(settings != NULL);
 
     fluid_synth_settings(settings);
+#ifndef FLUIDSYNTH_WATER
     fluid_shell_settings(settings);
     fluid_player_settings(settings);
     fluid_file_renderer_settings(settings);
     fluid_audio_driver_settings(settings);
     fluid_midi_driver_settings(settings);
+#endif
 }
 
 static int

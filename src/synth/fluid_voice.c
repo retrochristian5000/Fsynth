@@ -1401,7 +1401,12 @@ fluid_voice_kill_excl(fluid_voice_t *voice)
     /* The previously-used value of "-200" was found through listening tests
        with hi-hat samples. This was changed to "-2000" after "-200" was shown
        to cause too long cut times in most cases. */
+#ifdef FLUIDSYNTH_WATER
+    /* DLS shutdown is immediate in Water, matching the existing dmsynth behavior. */
+    fluid_voice_gen_set(voice, GEN_VOLENVRELEASE, -32768);
+#else
     fluid_voice_gen_set(voice, GEN_VOLENVRELEASE, -2000);
+#endif
     fluid_voice_update_param(voice, GEN_VOLENVRELEASE);
 
     at_tick = fluid_channel_get_min_note_length_ticks(voice->channel);
