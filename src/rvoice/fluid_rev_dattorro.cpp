@@ -39,6 +39,13 @@ constexpr float DATTORRO_PREDELAY_S = 4.0f / 1000.0f;
  // base sample rate used by the Dattorro paper
 constexpr double DATTORRO_SAMPLE_RATE = 29761.0 /*Hz*/;
 
+// Tap positions are stored as float by the Dattorro reverb. Keep the
+// double-to-float conversion explicit at this single storage boundary.
+static constexpr float fluid_dattorro_tap_seconds(int samples)
+{
+    return static_cast<float>(samples / DATTORRO_SAMPLE_RATE);
+}
+
 // See delay times in seconds as shown in the flow chart of figure 1
 constexpr double DATTORRO_DELAY_S[] =
 {
@@ -58,22 +65,22 @@ constexpr double DATTORRO_DELAY_S[] =
 constexpr float DATTORRO_TAP_S[] =
 {
     // left taps
-     266 / DATTORRO_SAMPLE_RATE,
-    2974 / DATTORRO_SAMPLE_RATE,
-    1913 / DATTORRO_SAMPLE_RATE,
-    1996 / DATTORRO_SAMPLE_RATE,
-    1990 / DATTORRO_SAMPLE_RATE,
-     187 / DATTORRO_SAMPLE_RATE,
-    1066 / DATTORRO_SAMPLE_RATE,
+    fluid_dattorro_tap_seconds(266),
+    fluid_dattorro_tap_seconds(2974),
+    fluid_dattorro_tap_seconds(1913),
+    fluid_dattorro_tap_seconds(1996),
+    fluid_dattorro_tap_seconds(1990),
+    fluid_dattorro_tap_seconds(187),
+    fluid_dattorro_tap_seconds(1066),
 
     // right taps
-     353 / DATTORRO_SAMPLE_RATE,
-    3627 / DATTORRO_SAMPLE_RATE,
-    1228 / DATTORRO_SAMPLE_RATE,
-    2673 / DATTORRO_SAMPLE_RATE,
-    2111 / DATTORRO_SAMPLE_RATE,
-     335 / DATTORRO_SAMPLE_RATE,
-     121 / DATTORRO_SAMPLE_RATE
+    fluid_dattorro_tap_seconds(353),
+    fluid_dattorro_tap_seconds(3627),
+    fluid_dattorro_tap_seconds(1228),
+    fluid_dattorro_tap_seconds(2673),
+    fluid_dattorro_tap_seconds(2111),
+    fluid_dattorro_tap_seconds(335),
+    fluid_dattorro_tap_seconds(121)
 };
 
 static int fluid_dattorro_seconds_to_samples(float seconds, fluid_real_t sample_rate)
