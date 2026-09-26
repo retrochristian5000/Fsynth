@@ -15,14 +15,20 @@
 #define HAVE_STDINT_H 1
 #define HAVE_STDIO_H 1
 #define HAVE_STDLIB_H 1
-#define HAVE_STRINGS_H 1
 #define HAVE_STRING_H 1
 #define HAVE_SYS_STAT_H 1
 #define HAVE_SYS_TYPES_H 1
 #define HAVE_WINDOWS_H 1
 
 #define NO_GUI 1
-#define MINGW32 1
+
+/*
+ * Water drives this bundled build with Clang's Windows target rather than
+ * MinGW mode.  Do not advertise MINGW32 or POSIX <strings.h>: doing so makes
+ * FluidSynth select strcasecmp()/strncasecmp() and include a header that is
+ * absent from the Windows cross-compiler's CRT surface.  _WIN32 selects the
+ * native _stricmp()/_strnicmp() compatibility path instead.
+ */
 
 #define PACKAGE "fluidsynth"
 #define PACKAGE_NAME "FluidSynth"
