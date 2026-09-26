@@ -1,5 +1,10 @@
 STATICLIB = libfluidsynth.a
 
+# Water's MSVCRT headers are the correct Windows ABI surface for this bundled
+# library.  Treat diagnostics originating in those compatibility headers as
+# system-header diagnostics without suppressing warnings in FluidSynth itself.
+MSVCRT_SYSTEM_HEADERS = 1
+
 # Water keeps FluidSynth as a small internal static library.  The fork remains
 # a normal standalone FluidSynth tree unless FLUIDSYNTH_WATER is defined here.
 EXTRADEFS = -DNDEBUG -DWITH_PROFILING -DFLUIDSYNTH_WATER
