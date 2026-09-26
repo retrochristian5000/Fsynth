@@ -59,7 +59,7 @@ T round_clip_to(float x)
     }
 
     constexpr float fmin = static_cast<float>(std::numeric_limits<T>::lowest());
-    float fmax = std::numeric_limits<T>::max();
+    float fmax = static_cast<float>(std::numeric_limits<T>::max());
     if(std::is_same<T, int32_t>::value || std::is_same<T, uint32_t>::value)
     {
         // Implicit conversion from 'int' to 'float' changes value from 2147483647 to 2147483648.0f
