@@ -49,7 +49,22 @@
 #include "fluidsynth.h"
 
 #ifdef FLUIDSYNTH_WATER
+/*
+ * Water's WinAPI headers otherwise provide min/max function-like macros.
+ * They break C++ calls such as std::min(...) and std::max(...), so keep the
+ * Windows compatibility namespace out of FluidSynth's C++ implementation.
+ */
+#ifndef NOMINMAX
+#define NOMINMAX 1
+#endif
 #include "wine/debug.h"
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(fluidsynth);
 #endif

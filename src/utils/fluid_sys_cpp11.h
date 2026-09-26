@@ -34,8 +34,16 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#define FALSE (0)
-#define TRUE (!FALSE)
+/*
+ * WinAPI already owns TRUE and FALSE.  The C++11 OS abstraction also
+ * needs them on non-Windows targets, so only provide fallback definitions.
+ */
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef TRUE
+#define TRUE 1
+#endif
 
 
 #ifdef __cplusplus

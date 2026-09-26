@@ -26,6 +26,14 @@
 extern "C" {
 #endif
 
+/*
+ * This checked-in header represents Water's bundled static FluidSynth build.
+ * Avoid warning if a build environment already supplied the same CMake-style
+ * switch; the static header remains authoritative.
+ */
+#ifdef BUILD_SHARED_LIBS
+#undef BUILD_SHARED_LIBS
+#endif
 #define BUILD_SHARED_LIBS 0
 
 #if (BUILD_SHARED_LIBS == 0)
