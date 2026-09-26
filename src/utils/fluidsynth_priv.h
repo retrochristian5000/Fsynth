@@ -323,7 +323,18 @@ _fluid_snprintf(char *buffer, size_t count, const char *format, ...)
 #define WINE_FLUID_WARN              WINE_WARN
 #define WINE_FLUID_ERR               WINE_ERR
 #define WINE_FLUID_PANIC             WINE_ERR
-#define FLUID_LOG(x, msg, ...)       do { WINE_ ## x(msg, ## __VA_ARGS__); WINE_ ## x("\n"); } while (0)
+
+/*
+ * Expand symbolic log levels before token pasting.  A direct WINE_ ## x
+ * prevents macro arguments such as STUB_FUNCTION_LOG_LEVEL from expanding,
+ * producing the bogus identifier WINE_STUB_FUNCTION_LOG_LEVEL.
+ */
+#define WINE_FLUID_LOG_NAME_(x)      WINE_ ## x
+#define WINE_FLUID_LOG_NAME(x)       WINE_FLUID_LOG_NAME_(x)
+#define FLUID_LOG(x, msg, ...)       do { \
+    WINE_FLUID_LOG_NAME(x)(msg, ## __VA_ARGS__); \
+    WINE_FLUID_LOG_NAME(x)("\n"); \
+} while (0)
 #else
 #define FLUID_LOG                    fluid_log
 #endif
