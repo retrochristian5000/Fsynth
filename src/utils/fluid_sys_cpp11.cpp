@@ -21,15 +21,29 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <exception>
+#ifndef FLUIDSYNTH_WATER
 #include <map>
+#endif
 #include <mutex>
 #include <new>
 #include <thread>
 
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+#include <windows.h>
+#endif
+
 static std::mutex atomic_lock;
 fluid_mutex_t _atomic_lock = &atomic_lock;
 
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+struct water_private_key
+{
+    DWORD tls_index;
+};
+#else
 static thread_local std::map<fluid_private_t, void *> private_data;
+#endif
 
 
 void fluid_msleep(unsigned int msecs)
@@ -67,7 +81,17 @@ new_fluid_thread(const char *name, fluid_thread_func_t func, void *data, int pri
     {
         if (prio_level > 0)
         {
-            info = new fluid_thread_info_t;
+            /*
+             * fluid_thread_high_prio() releases this with FLUID_FREE().
+             * Keep the allocator pair consistent; using C++ new here corrupts
+             * the heap when the high-priority thread exits.
+             */
+            info = FLUID_NEW(fluid_thread_info_t);
+            if (info == nullptr)
+            {
+                FLUID_LOG(FLUID_PANIC, "Out of memory on high-priority thread allocation");
+                return nullptr;
+            }
             info->func = func;
             info->data = data;
             info->prio_level = prio_level;
@@ -91,32 +115,75 @@ new_fluid_thread(const char *name, fluid_thread_func_t func, void *data, int pri
         FLUID_LOG(FLUID_ERR, "Failed to create thread");
     }
 
-    delete info;
+    FLUID_FREE(info);
     return nullptr;
 }
 
 void delete_fluid_thread(fluid_thread_t *_thread)
 {
     std::thread *thread = static_cast<std::thread *>(_thread);
+
+    if (thread == nullptr)
+        return;
+
     if (thread->joinable())
     {
-        if (thread->get_id() == std::this_thread::get_id())
+        try
         {
-            // Thread is deleting itself, detach from the thread object
+            if (thread->get_id() != std::this_thread::get_id())
+                FLUID_LOG(FLUID_WARN, "deleting a joinable thread; detaching it");
+
+            /*
+             * Destroying a joinable std::thread calls std::terminate().
+             * delete_fluid_thread() is documented as releasing the thread
+             * object, not as joining or stopping the underlying thread.
+             */
             thread->detach();
         }
-        else
+        catch (const std::exception &exc)
         {
-            FLUID_LOG(FLUID_ERR, "deleting thread that is still joinable");
+            /*
+             * Do not delete a still-joinable std::thread after detach failed;
+             * that would unconditionally terminate the process.
+             */
+            FLUID_LOG(FLUID_ERR, "Failed to detach thread before deletion: %s", exc.what());
+            return;
+        }
+        catch (...)
+        {
+            FLUID_LOG(FLUID_ERR, "Failed to detach thread before deletion");
+            return;
         }
     }
 
     delete thread;
 }
 
-int fluid_thread_join(fluid_thread_t *thread)
+int fluid_thread_join(fluid_thread_t *_thread)
 {
-    static_cast<std::thread *>(thread)->join();
+    std::thread *thread = static_cast<std::thread *>(_thread);
+
+    if (thread == nullptr || !thread->joinable())
+    {
+        FLUID_LOG(FLUID_ERR, "cannot join a null or detached thread");
+        return FLUID_FAILED;
+    }
+
+    try
+    {
+        thread->join();
+    }
+    catch (const std::exception &exc)
+    {
+        FLUID_LOG(FLUID_ERR, "Failed to join thread: %s", exc.what());
+        return FLUID_FAILED;
+    }
+    catch (...)
+    {
+        FLUID_LOG(FLUID_ERR, "Failed to join thread");
+        return FLUID_FAILED;
+    }
+
     return FLUID_OK;
 }
 
@@ -135,18 +202,25 @@ void fluid_mutex_destroy(fluid_mutex_t mutex)
 template<class T>
 static void ensure_lock_mutex(T *mutex)
 {
-    do
+    try
     {
-        try
-        {
-            mutex->lock();
-        }
-        catch (...)
-        {
-            continue;
-        }
+        mutex->lock();
     }
-    while (false);
+    catch (const std::exception &exc)
+    {
+        /*
+         * Returning without the lock violates every caller's invariant.
+         * The previous do/while(false) "retry" returned unlocked after an
+         * exception because continue advanced directly to the false test.
+         */
+        FLUID_LOG(FLUID_PANIC, "Failed to lock C++ mutex: %s", exc.what());
+        std::terminate();
+    }
+    catch (...)
+    {
+        FLUID_LOG(FLUID_PANIC, "Failed to lock C++ mutex");
+        std::terminate();
+    }
 }
 
 void _fluid_mutex_lock(fluid_mutex_t *mutex)
@@ -245,22 +319,79 @@ void delete_fluid_cond(fluid_cond_t cond)
 
 void _fluid_private_init(fluid_private_t *priv)
 {
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+    water_private_key *key = static_cast<water_private_key *>(FLUID_MALLOC(sizeof(water_private_key)));
+
+    if (key == nullptr)
+    {
+        FLUID_LOG(FLUID_PANIC, "Out of memory on thread-private key allocation");
+        *priv = nullptr;
+        return;
+    }
+
+    key->tls_index = TlsAlloc();
+    if (key->tls_index == TLS_OUT_OF_INDEXES)
+    {
+        FLUID_LOG(FLUID_ERR, "Failed to allocate Windows TLS index");
+        FLUID_FREE(key);
+        *priv = nullptr;
+        return;
+    }
+
+    *priv = key;
+#else
     *priv = priv;
+#endif
 }
 
 void fluid_private_free(fluid_private_t priv)
 {
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+    water_private_key *key = static_cast<water_private_key *>(priv);
+
+    if (key == nullptr)
+        return;
+
+    if (!TlsFree(key->tls_index))
+        FLUID_LOG(FLUID_WARN, "Failed to release Windows TLS index");
+    FLUID_FREE(key);
+#else
     private_data.erase(priv);
+#endif
 }
 
 void *fluid_private_get(fluid_private_t priv)
 {
-    return private_data[priv];
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+    water_private_key *key = static_cast<water_private_key *>(priv);
+    return key == nullptr ? nullptr : TlsGetValue(key->tls_index);
+#else
+    const auto entry = private_data.find(priv);
+    return entry == private_data.end() ? nullptr : entry->second;
+#endif
 }
 
 void fluid_private_set(fluid_private_t priv, void *value)
 {
-    private_data[priv] = value;
+#if defined(FLUIDSYNTH_WATER) && defined(_WIN32)
+    water_private_key *key = static_cast<water_private_key *>(priv);
+
+    if (key == nullptr || !TlsSetValue(key->tls_index, value))
+        FLUID_LOG(FLUID_ERR, "Failed to set Windows thread-private value");
+#else
+    try
+    {
+        private_data[priv] = value;
+    }
+    catch (const std::exception &exc)
+    {
+        FLUID_LOG(FLUID_ERR, "Failed to set C++ thread-private value: %s", exc.what());
+    }
+    catch (...)
+    {
+        FLUID_LOG(FLUID_ERR, "Failed to set C++ thread-private value");
+    }
+#endif
 }
 
 #if HAVE_CXX_FILESYSTEM
