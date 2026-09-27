@@ -21,6 +21,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
 env:
   BUILD_TYPE: RelWithDebInfo
   INSTALL_LOCATION: fluidsynth_install
@@ -363,6 +366,8 @@ jobs:
   # Publish artifacts to GitHub releases (only on release events)
   publish-release:
     if: github.ref_type == 'tag'
+    permissions:
+      contents: write
     needs:
       - acceptance-test
       - msvc-build
