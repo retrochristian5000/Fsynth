@@ -1,5 +1,8 @@
 name: FluidSynth iOS
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
@@ -72,6 +75,8 @@ jobs:
   # Publish artifacts to GitHub releases (only on release events)
   publish-release-ios:
     if: github.ref_type == 'tag'
+    permissions:
+      contents: write
     needs:
       - ios-build
     runs-on: ubuntu-latest
