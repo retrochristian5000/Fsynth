@@ -27,13 +27,13 @@
 #undef sinc_table7
 
 extern "C" {
-const fluid_real_t *const fluid_ct2hz_tab = water_fluid_ct2hz_data;
-const fluid_real_t *const fluid_cb2amp_tab = water_fluid_cb2amp_data;
-const fluid_real_t *const fluid_concave_tab = water_fluid_concave_data;
-const fluid_real_t *const fluid_convex_tab = water_fluid_convex_data;
-const fluid_real_t *const fluid_pan_tab = water_fluid_pan_data;
+extern const fluid_real_t *const fluid_ct2hz_tab = water_fluid_ct2hz_data;
+extern const fluid_real_t *const fluid_cb2amp_tab = water_fluid_cb2amp_data;
+extern const fluid_real_t *const fluid_concave_tab = water_fluid_concave_data;
+extern const fluid_real_t *const fluid_convex_tab = water_fluid_convex_data;
+extern const fluid_real_t *const fluid_pan_tab = water_fluid_pan_data;
 
-const fluid_real_t *const interp_coeff_linear = &water_interp_coeff_linear_data[0][0];
-const fluid_real_t *const interp_coeff = &water_interp_coeff_data[0][0];
-const fluid_real_t *const sinc_table7 = &water_sinc_table7_data[0][0];
+extern const fluid_real_t *const interp_coeff_linear = &water_interp_coeff_linear_data[0][0];
+extern const fluid_real_t *const interp_coeff = &water_interp_coeff_data[0][0];
+extern const fluid_real_t *const sinc_table7 = &water_sinc_table7_data[0][0];
 }
